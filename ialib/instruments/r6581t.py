@@ -1,11 +1,10 @@
-from dataclasses import dataclass
-from typing import Union, Optional
-from enum import Enum
 import math
 import logging
-import socket
+from enum import Enum
+from typing import Union, Optional, cast
+from dataclasses import dataclass
 
-from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+from ialib.instruments.types import InstrumentInterface
 
 logger = logging.getLogger(__name__)
 
@@ -46,29 +45,22 @@ R6581T_MAX_DIGITS = 8
 R6581T_MIN_DIGITS = 4
 
 
-class R6581T(PlxGPIBEthDevice):
+class R6581T:
     on_off_lut = {True: "ON", False: "OFF"}
     on_off_inv = {"1": True, "0": False}
 
-    def __init__(self, host: str, address: int = 24):
-        super().__init__(host=host, address=address, timeout=2)
-        self.connect()
+    def __init__(self, ins: InstrumentInterface):
+        self.ins = ins
         self._line_freq: Optional[int] = None
 
     def _write_data(self, dat: str) -> None:
-        self.write(dat)
+        self.ins.write(dat)
 
     def _read_data(self) -> str:
-        return self.read()
+        return self.ins.read()
 
-    def _query_data(self, dat: str, retry_limit: int = 10) -> str:
-        self.write(dat)
-        for _ in range(retry_limit - 1):
-            try:
-                return self.read()
-            except socket.timeout:
-                pass
-        return self.read()
+    def _query_data(self, dat: str) -> str:
+        return self.ins.query(dat)
 
     def reset(self) -> None:
         self._write_data("*RST")
@@ -99,13 +91,13 @@ class R6581T(PlxGPIBEthDevice):
         if val is None:
             return math.nan
         val_f = float(val.split()[-1])
-        if val_f == 9.9e+37:
+        if val_f == 9.9e37:
             return math.inf
         return val_f
 
     @property
     def mode(self) -> R6581TFunction:
-        return R6581TFunction(self._query_data("CONF?").strip().strip("\"").strip())
+        return R6581TFunction(self._query_data("CONF?").strip().strip('"').strip())
 
     @mode.setter
     def mode(self, val: R6581TFunction) -> None:
@@ -134,7 +126,7 @@ class R6581T(PlxGPIBEthDevice):
         """Get filter status, R6581TFilter.NONE is not enabled."""
         if self.filter_en is False:
             return R6581TFilter.NONE
-        return R6581TFilter(self._query_data(":CALC:DFIL?").strip().strip("\"").strip())
+        return R6581TFilter(self._query_data(":CALC:DFIL?").strip().strip('"').strip())
 
     @filter.setter
     def filter(self, val: Union[R6581TFilter, None]) -> None:
@@ -164,9 +156,9 @@ class R6581T(PlxGPIBEthDevice):
         if filt_mode is R6581TFilter.NONE:
             return None
         elif filt_mode is R6581TFilter.AVERAGE:
-            return int(self._query_data("CALC:DFIL:AVER?").strip().strip("\"").strip())
+            return int(self._query_data("CALC:DFIL:AVER?").strip().strip('"').strip())
         elif filt_mode is R6581TFilter.SMOOTHING:
-            return int(self._query_data("CALC:DFIL:SMO?").strip().strip("\"").strip())
+            return int(self._query_data("CALC:DFIL:SMO?").strip().strip('"').strip())
         else:
             raise ValueError(f"{filt_mode} is not supported.")
 
@@ -219,7 +211,7 @@ class R6581T(PlxGPIBEthDevice):
     @property
     def input(self) -> R6581TInput:
         """R6581T input terminal selection front or rear."""
-        return R6581TInput(self._query_data(":INP:TERM?").strip().strip("\"").strip())
+        return R6581TInput(self._query_data(":INP:TERM?").strip().strip('"').strip())
 
     @input.setter
     def input(self, val: R6581TInput) -> None:
@@ -230,16 +222,12 @@ class R6581T(PlxGPIBEthDevice):
     def error(self) -> Optional[R6581TError]:
         """Pop the latest error from the error stack; None if there are no errors."""
         res = self._query_data("SYST:ERR?").strip()
-        code, val = res.split(",")
-        code = int(code.strip())
+        raw_code, val = res.split(",")
+        code = int(raw_code.strip())
         val = val.strip('"')
         if code == 0:
             return None
-        return R6581TError(
-            code=code,
-            text=val,
-            raw_str=res
-        )
+        return R6581TError(code=code, text=val, raw_str=res)
 
     @property
     def range(self) -> float:
@@ -322,7 +310,7 @@ class R6581T(PlxGPIBEthDevice):
     def int_time(self, val: float) -> None:
         """Integration time state."""
         curr_mode = self.mode
-        if not 1e-6 <= val <= (1/self.line_freq) * 100:
+        if not 1e-6 <= val <= (1 / self.line_freq) * 100:
             raise ValueError(f"Integration time must be between 4 and 8 not {val}!")
         self._write_data(f":{curr_mode.value}:APER {val:+.5E}")
 
@@ -351,12 +339,18 @@ class R6581T(PlxGPIBEthDevice):
 
 
 if __name__ == "__main__":
-    import time
-    from quantiphy import Quantity
+    import pyvisa
+    from quantiphy import Quantity  # type: ignore
+
     logging.basicConfig()
     logger.level = logging.DEBUG
 
-    ins = R6581T(host=plx_get_first(), address=24)
+    rm = pyvisa.ResourceManager()
+    ins_interface = cast(
+        pyvisa.resources.MessageBasedResource, rm.open_resource("GPIB0::26::INSTR")
+    )
+
+    ins = R6581T(ins_interface)
     ins.reset()
     ins.mode = R6581TFunction.OHM2W
     ins.digits = 8

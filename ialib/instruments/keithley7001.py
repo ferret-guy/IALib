@@ -1,30 +1,24 @@
-from typing import Optional
-import logging
-import socket
 import time
+import logging
+from typing import Optional, cast
 
-from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+from ialib.instruments.types import InstrumentInterface
 
 logger = logging.getLogger(__name__)
 
 
-class Keithley7001(PlxGPIBEthDevice):
-    def __init__(self, host: str, address: int = 11):
-        super().__init__(host=host, address=address)
+class Keithley7001:
+    def __init__(self, ins: InstrumentInterface):
+        self.ins = ins
 
     def _write_data(self, dat: str) -> None:
-        self.write(dat)
+        self.ins.write(dat)
 
     def _read_data(self) -> str:
-        return self.read()
+        return self.ins.read()
 
-    def _query_data(self, dat: str, retry_limit: int = 10) -> str:
-        for _ in range(retry_limit - 1):
-            try:
-                return self.query(dat)
-            except socket.timeout:
-                pass
-        return self.query(dat)
+    def _query_data(self, dat: str) -> str:
+        return self.ins.query(dat)
 
     def open(self, slot: Optional[int] = None, chan: Optional[int] = None) -> None:
         if slot is None and chan is None:
@@ -51,6 +45,13 @@ class Keithley7001(PlxGPIBEthDevice):
 
 
 if __name__ == "__main__":
-    ins = Keithley7001(host=plx_get_first(), address=9)
+    import pyvisa
+
+    rm = pyvisa.ResourceManager()
+    ins_interface = cast(
+        pyvisa.resources.MessageBasedResource, rm.open_resource("GPIB0::26::INSTR")
+    )
+
+    ins = Keithley7001(ins_interface)
     ins.open()
     ins.close_sw(slot=1, chan=2)

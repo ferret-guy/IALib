@@ -1,10 +1,9 @@
 import math
-import socket
 import logging
 from enum import Enum
 from typing import Optional
 
-from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+from ialib.instruments.types import InstrumentInterface
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +45,9 @@ class Fluke8840ARate(Enum):
     FAST = "S2"
 
 
-class Fluke8840A(PlxGPIBEthDevice):
-    def __init__(self, host: str, address: int = 11):
-        super().__init__(host=host, address=address)
-        self.connect()
+class Fluke8840A:
+    def __init__(self, ins: InstrumentInterface):
+        self.ins = ins
         self._range: Optional[Fluke8840ARange] = None
         self._function: Optional[Fluke8840AFunction] = None
         self._rate: Optional[Fluke8840ARate] = None
@@ -57,18 +55,13 @@ class Fluke8840A(PlxGPIBEthDevice):
         self._blank: Optional[bool] = None
 
     def _write_data(self, dat: str) -> None:
-        self.write(dat)
+        self.ins.write(dat)
 
     def _read_data(self) -> str:
-        return self.read()
+        return self.ins.read()
 
     def _query_data(self, dat: str, retry_limit: int = 10) -> str:
-        for _ in range(retry_limit - 1):
-            try:
-                return self.query(dat)
-            except socket.timeout:
-                pass
-        return self.query(dat)
+        return self.ins.query(dat)
 
     def reset(self) -> None:
         self._write_data("*")
@@ -136,6 +129,8 @@ class Fluke8840A(PlxGPIBEthDevice):
 
 
 if __name__ == "__main__":
-    ins = Fluke8840A(host=plx_get_first(), address=11)
+    from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+
+    ins = Fluke8840A(PlxGPIBEthDevice(host=plx_get_first(), address=11))
     for _ in range(10):
         print(ins.data)

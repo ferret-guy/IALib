@@ -1,4 +1,7 @@
 import unittest
+from typing import cast
+
+import pyvisa
 
 import ialib.instruments.hp34401a as dimm
 
@@ -8,7 +11,11 @@ class HP34401ATest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.ins = dimm.HP34401A()
+        rm = pyvisa.ResourceManager()
+        ins_interface = cast(
+            pyvisa.resources.MessageBasedResource, rm.open_resource("GPIB0::25::INSTR")
+        )
+        cls.ins = dimm.HP34401A(ins_interface)
         cls.ins.reset()
         cls.ins.beeper = False
 

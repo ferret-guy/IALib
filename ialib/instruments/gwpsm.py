@@ -1,28 +1,23 @@
-import socket
 import logging
+from typing import cast
 
-from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+from ialib.instruments.types import InstrumentInterface
 
 logger = logging.getLogger(__name__)
 
 
-class GWPSMPSU(PlxGPIBEthDevice):
-    def __init__(self, host: str, address: int = 11):
-        super().__init__(host=host, address=address)
+class GWPSMPSU:
+    def __init__(self, ins: InstrumentInterface):
+        self.ins = ins
 
     def _write_data(self, dat: str) -> None:
-        self.write(dat)
+        self.ins.write(dat)
 
     def _read_data(self) -> str:
-        return self.read()
+        return self.ins.read()
 
-    def _query_data(self, dat: str, retry_limit: int = 10) -> str:
-        for _ in range(retry_limit - 1):
-            try:
-                return self.query(dat)
-            except socket.timeout:
-                pass
-        return self.query(dat)
+    def _query_data(self, dat: str) -> str:
+        return self.ins.query(dat)
 
     def set_iv(self, v: float, i: float):
         self._write_data(f":APPLY {v},{i}")
@@ -73,9 +68,14 @@ class GWPSMPSU(PlxGPIBEthDevice):
 
 
 if __name__ == "__main__":
-    import numpy as np
+    import pyvisa
 
-    ins = GWPSMPSU(host=plx_get_first(), address=7)
+    rm = pyvisa.ResourceManager()
+    ins_interface = cast(
+        pyvisa.resources.MessageBasedResource, rm.open_resource("GPIB0::7::INSTR")
+    )
+
+    ins = GWPSMPSU(ins_interface)
 
     ins.output = True
     print(ins.output)

@@ -21,3 +21,35 @@ Instruments:
 - HP (~~now Agilent~~ now Keysight) 53131A (limited support)
 - Keithley (now Tektronix) 7001 (Just opening and closing switches)
 - Advantest R6581T
+
+
+Example pyvisa:
+
+```python
+import pyvisa
+
+import ialib.instruments.hp34401a as hp34401a
+
+rm = pyvisa.ResourceManager()
+ins_interface = rm.open_resource("GPIB0::26::INSTR")
+
+ins = hp34401a.HP34401A(ins_interface)
+ins.reset()
+ins.mode = hp34401a.HP34401AFunction.VDC
+print(f"{ins.data=}")
+```
+
+Example Prologix GPIB-ETHERNET:
+
+```python
+from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+import ialib.instruments.hp34401a as hp34401a
+
+ins = hp34401a.HP34401A(PlxGPIBEthDevice(
+    host=plx_get_first(), # Find the first Prologix adaptor
+    address=11)
+)
+ins.reset()
+ins.mode = hp34401a.HP34401AFunction.VDC
+print(f"{ins.data=}")
+```

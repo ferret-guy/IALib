@@ -12,7 +12,7 @@ class RigolDG4000:
 
     This driver works for all four models (DG4202, DG4162, DG4102, DG4062).
 
-    Designed to use ofer the ethernet port via pyvisa for example:
+    Designed to use over the ethernet port via pyvisa for example:
 
     ```
     ins = RigolDG4000("TCPIP0::192.168.5.239::INSTR")

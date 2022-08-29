@@ -1,10 +1,10 @@
+import time
 import random
 import socket
 import struct
-import time
 from typing import List
 
-import netifaces as ni
+import netifaces as ni  # type: ignore
 
 __all__ = [
     "PlxGPIBEth",
@@ -85,7 +85,7 @@ def plx_discover(timeout: float = 0.5) -> List[dict]:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         try:
-            s.bind((ni.ifaddresses(iface)[ni.AF_INET][0]['addr'], 0))
+            s.bind((ni.ifaddresses(iface)[ni.AF_INET][0]["addr"], 0))
         except KeyError:
             # Interface has no assigned IP
             continue
@@ -148,6 +148,7 @@ class PlxGPIBEthDevice:
     def __init__(self, host: str, address: int, timeout: float = 1):
         self.address = address
         self.gpib = PlxGPIBEth(host=host, timeout=timeout)
+        self.connect()
 
     def connect(self):
         self.gpib.connect()
@@ -164,8 +165,13 @@ class PlxGPIBEthDevice:
         self.gpib.select(self.address)
         return self.gpib.read(*args)
 
-    def query(self, *args):
+    def query(self, *args, retry_limit=10):
         self.gpib.select(self.address)
+        for _ in range(retry_limit - 1):
+            try:
+                return self.query(*args)
+            except socket.timeout:
+                pass
         return self.gpib.query(*args)
 
     def idn(self):

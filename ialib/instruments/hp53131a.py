@@ -1,10 +1,10 @@
-from dataclasses import dataclass
-from typing import Union, Optional
-from enum import Enum
 import math
-import logging
 import socket
+import logging
+from typing import Optional, cast
+from dataclasses import dataclass
 
+from ialib.instruments.types import InstrumentInterface
 from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
 
 logger = logging.getLogger(__name__)
@@ -21,24 +21,17 @@ class HP53131A(PlxGPIBEthDevice):
     on_off_lut = {True: "ON", False: "OFF"}
     on_off_inv = {"1": True, "0": False}
 
-    def __init__(self, host: str, address: int = 3):
-        super().__init__(host=host, address=address, timeout=2)
-        self.connect()
+    def __init__(self, ins: InstrumentInterface):
+        self.ins = ins
 
     def _write_data(self, dat: str) -> None:
-        self.write(dat)
+        self.ins.write(dat)
 
     def _read_data(self) -> str:
-        return self.read()
+        return self.ins.read()
 
-    def _query_data(self, dat: str, retry_limit: int = 10) -> str:
-        self.write(dat)
-        for _ in range(retry_limit - 1):
-            try:
-                return self.read()
-            except socket.timeout:
-                pass
-        return self.read()
+    def _query_data(self, dat: str) -> str:
+        return self.ins.query(dat)
 
     def reset(self) -> None:
         self._write_data("*RST")
@@ -63,8 +56,8 @@ class HP53131A(PlxGPIBEthDevice):
     def error(self) -> Optional[HP53131AError]:
         """Pop the latest error from the error stack; None if there are no errors."""
         res = self._query_data("SYST:ERR?").strip()
-        code, val = res.split(",")
-        code = int(code.strip())
+        raw_code, val = res.split(",")
+        code = int(raw_code.strip())
         val = val.strip('"')
         if code == 0:
             return None
@@ -72,13 +65,17 @@ class HP53131A(PlxGPIBEthDevice):
 
 
 if __name__ == "__main__":
-    import time
-    from quantiphy import Quantity
+    import pyvisa
 
     logging.basicConfig()
     logger.level = logging.DEBUG
 
-    ins = HP53131A(host=plx_get_first(), address=3)
+    rm = pyvisa.ResourceManager()
+    ins_interface = cast(
+        pyvisa.resources.MessageBasedResource, rm.open_resource("GPIB0::3::INSTR")
+    )
+
+    ins = HP53131A(ins_interface)
     ins.reset()
     print(ins.data)
     print(ins.error)

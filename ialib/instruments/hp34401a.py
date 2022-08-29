@@ -1,10 +1,10 @@
 import math
 import logging
 from enum import Enum
-from typing import Optional
+from typing import Optional, cast
 from dataclasses import dataclass
 
-import pyvisa
+from ialib.instruments.types import InstrumentInterface
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,8 @@ class HP34401A:
     on_off_lut: dict[bool, str] = {True: "ON", False: "OFF"}
     on_off_inv: dict[str, bool] = {"1": True, "0": False}
 
-    def __init__(self, host: str = "GPIB0", address: int = 25):
-        rm = pyvisa.ResourceManager()
-        self.ins = rm.open_resource(f"{host}::{address}::INSTR")
+    def __init__(self, ins: InstrumentInterface):
+        self.ins = ins
 
     def _write_data(self, dat: str) -> None:
         logger.debug(f"Write: {dat}")
@@ -245,10 +244,17 @@ class HP34401A:
 
 
 if __name__ == "__main__":
+    import pyvisa
+
     logging.basicConfig()
     logger.level = logging.DEBUG
 
-    ins = HP34401A(host="GPIB0", address=24)
+    rm = pyvisa.ResourceManager()
+    ins_interface = cast(
+        pyvisa.resources.MessageBasedResource, rm.open_resource("GPIB0::26::INSTR")
+    )
+
+    ins = HP34401A(ins_interface)
     ins.reset()
     ins.mode = HP34401AFunction.VDC
     ins.nplc = 100

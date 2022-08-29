@@ -1,12 +1,11 @@
+# type: ignore
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib import style
-
-from scipy.stats import norm
 from scipy import stats
-import numpy as np
-
 from quantiphy import Quantity
+from matplotlib import style
+from scipy.stats import norm
 
 style.use("seaborn")
 
@@ -32,18 +31,19 @@ def animate(i):
         mu, std = norm.fit(ys)
 
         # Plot the histogram.
-        #ax1.hist(ys, density=True, alpha=0.6, color='g')
+        # ax1.hist(ys, density=True, alpha=0.6, color='g')
         plt.scatter(xs, ys)
         # Plot the PDF.
         xmin, xmax = plt.xlim()
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mu, std)
-        #ax1.plot(x, p, 'k', linewidth=2)
+        # ax1.plot(x, p, 'k', linewidth=2)
         k2, p = stats.normaltest(ys)
         title = f"Fit results: mu = {Quantity(mu, 'Ohm')},  std = {Quantity(std, 'Ohm')}, p = {p:.3f} (normal if p > 0.05)"
         plt.title(title)
     except Exception as e:
         print(e)
+
 
 animate(None)
 ani = animation.FuncAnimation(fig, animate, interval=100)
