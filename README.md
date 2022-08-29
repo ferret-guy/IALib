@@ -1,9 +1,8 @@
-=====
 IALib
 =====
 
 
-    **I**nsturment **Automation** **Lib**rary; A library of (mostly) standalone instrument drivers
+Instrument Automation Library; A library of (mostly) standalone instrument drivers
 
 
 A library of (mostly) standalone instrument drivers, mostly over GPIB, along with GPIB drivers for some GPIB interfaces.
