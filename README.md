@@ -19,5 +19,5 @@ Instruments:
 - GW Instek PSM-Series DC Supply (PSM-2010, PSM-3004, PSM-6003)
 - HP (~~now Agilent~~ now Keysight) 34401A
 - HP (~~now Agilent~~ now Keysight) 53131A (limited support)
-- Keithley (~now Tektronix) 7001 (Just opening and closing switches)
+- Keithley (now Tektronix) 7001 (Just opening and closing switches)
 - Advantest R6581T
