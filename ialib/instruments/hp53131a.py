@@ -5,7 +5,7 @@ import math
 import logging
 import socket
 
-from plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class HP53131A(PlxGPIBEthDevice):
             data = float(self._query_data("READ?"))
         except socket.timeout:
             data = math.nan
-        if data == 9.91e+37:
+        if data == 9.91e37:
             return math.nan
         return data
 
@@ -68,16 +68,13 @@ class HP53131A(PlxGPIBEthDevice):
         val = val.strip('"')
         if code == 0:
             return None
-        return HP53131AError(
-            code=code,
-            text=val,
-            raw_str=res
-        )
+        return HP53131AError(code=code, text=val, raw_str=res)
 
 
 if __name__ == "__main__":
     import time
     from quantiphy import Quantity
+
     logging.basicConfig()
     logger.level = logging.DEBUG
 

@@ -1,10 +1,10 @@
+import math
+import socket
+import logging
 from enum import Enum
 from typing import Optional
-import math
-import logging
-import socket
 
-from plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
 
 logger = logging.getLogger(__name__)
 

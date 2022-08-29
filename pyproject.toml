@@ -1,21 +1,15 @@
-[build-system]
-# AVOID CHANGING REQUIRES: IT WILL BE UPDATED BY PYSCAFFOLD!
-requires = ["setuptools>=46.1.0", "setuptools_scm[toml]>=5"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-# For smarter version schemes and other configuration options,
-# check out https://github.com/pypa/setuptools_scm
-version_scheme = "no-guess-dev"
+[tool.isort]
+length_sort = true
+profile = "black"
 
 [mypy]
 python_version = 3.9
-warn_return_any = True
-warn_unused_configs = True
-warn_unused_ignores = True
-warn_unreachable = True
-disallow_untyped_calls = True
-disallow_untyped_defs = True
-disallow_incomplete_defs = True
-no_implicit_optional = True
-warn_redundant_casts = True
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_unreachable = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true

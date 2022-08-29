@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import Union, Optional, Dict
+from typing import Union, Optional
 from enum import Enum
 import math
 import logging
+import socket
 
-import pyvisa
+from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
 
 logger = logging.getLogger(__name__)
 
@@ -45,23 +46,29 @@ R6581T_MAX_DIGITS = 8
 R6581T_MIN_DIGITS = 4
 
 
-class R6581T:
-    on_off_lut: dict[bool, str] = {True: "ON", False: "OFF"}
-    on_off_inv: dict[str, bool] = {"1": True, "0": False}
+class R6581T(PlxGPIBEthDevice):
+    on_off_lut = {True: "ON", False: "OFF"}
+    on_off_inv = {"1": True, "0": False}
 
     def __init__(self, host: str, address: int = 24):
-        rm = pyvisa.ResourceManager(r'C:\Windows\System32\visa64.dll')
-        self.ins = rm.open_resource(f'{host}::{address}::INSTR')
+        super().__init__(host=host, address=address, timeout=2)
+        self.connect()
         self._line_freq: Optional[int] = None
 
     def _write_data(self, dat: str) -> None:
-        self.ins.write(dat)
+        self.write(dat)
 
     def _read_data(self) -> str:
-        return self.ins.read()
+        return self.read()
 
-    def _query_data(self, dat: str) -> str:
-        return self.ins.query(dat)
+    def _query_data(self, dat: str, retry_limit: int = 10) -> str:
+        self.write(dat)
+        for _ in range(retry_limit - 1):
+            try:
+                return self.read()
+            except socket.timeout:
+                pass
+        return self.read()
 
     def reset(self) -> None:
         self._write_data("*RST")
@@ -349,9 +356,9 @@ if __name__ == "__main__":
     logging.basicConfig()
     logger.level = logging.DEBUG
 
-    ins = R6581T(host="GPIB0", address=24)
+    ins = R6581T(host=plx_get_first(), address=24)
     ins.reset()
-    ins.mode = R6581TFunction.VDC
+    ins.mode = R6581TFunction.OHM2W
     ins.digits = 8
     ins.nplc = 100
     print(f"{ins.nplc=}; {Quantity(ins.int_time, 's')}")

@@ -1,7 +1,7 @@
 import socket
 import logging
 
-from plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
+from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
 
 logger = logging.getLogger(__name__)
 

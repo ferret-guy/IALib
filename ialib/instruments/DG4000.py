@@ -1,7 +1,7 @@
+import math
+from enum import Enum
 from typing import Union, Collection, cast
 from dataclasses import dataclass
-from enum import Enum
-import math
 
 import pyvisa
 
@@ -11,6 +11,12 @@ class RigolDG4000:
     Driver for the Rigol DG4000 series arbitrary waveform generator.
 
     This driver works for all four models (DG4202, DG4162, DG4102, DG4062).
+
+    Designed to use ofer the ethernet port via pyvisa for example:
+
+    ```
+    ins = RigolDG4000("TCPIP0::192.168.5.239::INSTR")
+    ```
 
     VERY loosely from  https://github.com/nanoelectronics-new/qcodes/blob/master/instrument_drivers/rigol/DG4000.py
     """

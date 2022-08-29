@@ -1,9 +1,14 @@
-import ctypes
 import os
+import ctypes
+import pathlib
 
 # Cheat and use a windows only solution, this lib only works on windows
 UG01lib = ctypes.CDLL(
-    f"{os.path.dirname(os.path.abspath(__file__))}\\UG01\\UG01API\\LQUG01_c.dll"
+    str(
+        pathlib.Path(__file__)
+        .parent.joinpath("UG01", "UG01API", "LQUG01_c.dll")
+        .absolute()
+    )
 )
 
 UG01lib.Gwrite.restype = ctypes.c_int
