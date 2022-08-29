@@ -45,9 +45,10 @@ Example Prologix GPIB-ETHERNET:
 from ialib.interfaces.plx_gpib_ethernet import PlxGPIBEthDevice, plx_get_first
 import ialib.instruments.hp34401a as hp34401a
 
-ins = hp34401a.HP34401A(PlxGPIBEthDevice(
-    host=plx_get_first(), # Find the first Prologix adaptor
-    address=11)
+ins = hp34401a.HP34401A(
+    PlxGPIBEthDevice(
+        host=plx_get_first(), address=11  # Find the first Prologix adaptor
+    )
 )
 ins.reset()
 ins.mode = hp34401a.HP34401AFunction.VDC
