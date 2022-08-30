@@ -4,6 +4,8 @@ setup(
     name="IALib",
     version="0.1",
     description="A library of (mostly) standalone instrument drivers",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     author="Mark Omo",
     classifiers=[  # Optional
         "Development Status :: 3 - Beta",
