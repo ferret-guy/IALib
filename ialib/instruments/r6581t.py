@@ -41,6 +41,13 @@ class R6581TInput(Enum):
     REAR = "REAR"
 
 
+class R6581TPower(Enum):
+    """R6581T resistance source power mode."""
+
+    HIGH = "HI"
+    LOW = "LOW"
+
+
 R6581T_MAX_DIGITS = 8
 R6581T_MIN_DIGITS = 4
 
@@ -271,6 +278,20 @@ class R6581T:
         """Auto range state."""
         curr_mode = self.mode
         self._write_data(f":{curr_mode.value}:RANG:AUTO {self.on_off_lut[val]}")
+
+    @property
+    def power(self) -> R6581TPower:
+        """Resistance source power mode for 2-wire/4-wire ohms."""
+        curr_mode = self.mode
+        return R6581TPower(
+            self._query_data(f":{curr_mode.value}:POW?").strip().strip('"').strip()
+        )
+
+    @power.setter
+    def power(self, val: R6581TPower) -> None:
+        """Resistance source power mode for 2-wire/4-wire ohms."""
+        curr_mode = self.mode
+        self._write_data(f":{curr_mode.value}:POW {val.value}")
 
     @property
     def digits(self) -> int:
