@@ -65,16 +65,6 @@ class HP6655A:
         self._validate(val, self.MAX_CURRENT)
         self._write_data(f"CURR {val}")
 
-    def set_iv(self, v: float, i: float) -> None:
-        """Set current limit, then voltage; does not enable the output.
-
-        Both values are validated before writing. Updates are not atomic.
-        """
-        self._validate(v, self.MAX_VOLTAGE)
-        self._validate(i, self.MAX_CURRENT)
-        self.curr = i
-        self.volt = v
-
     @property
     def v_meas(self) -> float:
         """Measured voltage at the sense terminals in volts."""

@@ -46,7 +46,8 @@ def run(load=False):
             for index, supply in enumerate(supplies):
                 supply.reset()
                 assert supply.output is False
-                supply.set_iv(0, .2 if index == 0 else 0)
+                supply.curr = .2 if index == 0 else 0
+                supply.volt = 0
                 for enabled in (True, False):
                     supply.ocp = enabled
                     assert supply.ocp is enabled
@@ -66,8 +67,10 @@ def run(load=False):
                 print(index + 5, "reset, OCP controls, OVP, set points, error checks PASS", flush=True)
 
             if load:
-                master.set_iv(0, .2)
-                slave.set_iv(12, 0)
+                master.curr = .2
+                master.volt = 0
+                slave.curr = 0
+                slave.volt = 12
                 slave.output = True
                 master.output = True
                 master.volt = 6  # Even at full voltage, 10 ohms dissipates 3.6 W.
@@ -105,8 +108,10 @@ def run(load=False):
 
             for trip_index in (0, 1):
                 off()
-                master.set_iv(0, .2)
-                slave.set_iv(12, 0)
+                master.curr = .2
+                master.volt = 0
+                slave.curr = 0
+                slave.volt = 12
                 for index, supply in enumerate(supplies):
                     supply.ovp = 6 if index == trip_index else 10
                     supply.clear_protection()
@@ -135,7 +140,8 @@ def run(load=False):
         finally:
             off()
             for index, supply in enumerate(supplies):
-                supply.set_iv(0, .2 if index == 0 else 0)
+                supply.curr = .2 if index == 0 else 0
+                supply.volt = 0
                 supply.ocp = False
                 supply.ovp = 10
                 resources[index].write("*SAV 0")
