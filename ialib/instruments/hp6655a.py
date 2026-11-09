@@ -119,7 +119,7 @@ class HP6655A:
 
     def reset(self) -> None:
         """Reset the supply (disabling output), then clear status and errors."""
-        # Clear old errors before checking the reset command.
+        # Check errors only after clearing pre-existing status/errors.
         self.ins.write("*RST")
         self._write_data("*CLS")
 
@@ -132,55 +132,3 @@ class HP6655A:
         if code == 0:
             return None
         return HP6655AError(code, text.strip().strip('"'), res)
-
-
-class HP6655ACompatibility(HP6655A):
-    """Legacy HP Compatibility mode, without changing saved language/settings.
-
-    Supports set points, measured values, output writes, OVP, and errors.
-    Output-state queries, OCP, reset, and protection clearing are unsupported.
-    Legacy replies include a mnemonic prefix and may be preceded by blank lines.
-    """
-
-    _queries = {
-        "VOLT?": "VSET?", "CURR?": "ISET?",
-        "MEAS:VOLT?": "VOUT?", "MEAS:CURR?": "IOUT?",
-        "VOLT:PROT?": "OVP?", "SYST:ERR?": "ERR?",
-    }
-    _writes = {"VOLT": "VSET", "CURR": "ISET",
-               "OUTP": "OUT", "VOLT:PROT": "OVP"}
-
-    def _query_data(self, dat: str) -> str:
-        if dat not in self._queries:
-            raise NotImplementedError(f"Compatibility mode does not support {dat}")
-        command = self._queries[dat]
-        response = self.ins.query(command).strip()
-        for _ in range(10):
-            if response:
-                break
-            response = self.ins.read().strip()
-        prefix, separator, value = response.partition(" ")
-        if prefix != command.rstrip("?") or not separator or not value.strip():
-            raise ValueError(f"Unexpected reply to {command}: {response!r}")
-        return value.strip()
-
-    def _write_data(self, dat: str) -> None:
-        command, separator, value = dat.partition(" ")
-        if command not in self._writes or not separator:
-            raise NotImplementedError(f"Compatibility mode does not support {dat}")
-        self.ins.write(f"{self._writes[command]} {value}")
-        if self.error_check:
-            error = self.error
-            if error is not None:
-                raise RuntimeError(f"Error executing {dat!r}: {error.raw_str}")
-
-    @property
-    def error(self) -> Optional[HP6655AError]:
-        """Read the legacy error code; no text is returned by the instrument."""
-        code = int(self._query_data("SYST:ERR?"))
-        if code == 0:
-            return None
-        return HP6655AError(code, "HP Compatibility error", f"ERR {code}")
-
-    def reset(self) -> None:
-        raise NotImplementedError("Legacy CLR recalls power-on settings; reset is unsupported")
