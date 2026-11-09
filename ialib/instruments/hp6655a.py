@@ -1,6 +1,5 @@
-"""HP 6655A driver using the SCPI language (not Compatibility mode)."""
+"""HP 6655A SCPI driver."""
 
-import math
 from dataclasses import dataclass
 from typing import Optional
 
@@ -21,19 +20,9 @@ class HP6655A:
     unless error_check=False. The caller owns the interface and its timeouts.
     """
 
-    # Maximum programmable values, rather than nominal output ratings.
-    MAX_VOLTAGE = 122.85
-    MAX_CURRENT = 4.095
-    MAX_OVP = 132.0
-
     def __init__(self, ins: InstrumentInterface, error_check: bool = True):
         self.ins = ins
         self.error_check = error_check
-
-    @staticmethod
-    def _validate(val: float, maximum: float) -> None:
-        if not math.isfinite(val) or not 0 <= val <= maximum:
-            raise ValueError(f"Value must be finite and between 0 and {maximum}")
 
     def _write_data(self, dat: str) -> None:
         self.ins.write(dat)
@@ -52,7 +41,6 @@ class HP6655A:
 
     @volt.setter
     def volt(self, val: float) -> None:
-        self._validate(val, self.MAX_VOLTAGE)
         self._write_data(f"VOLT {val}")
 
     @property
@@ -62,7 +50,6 @@ class HP6655A:
 
     @curr.setter
     def curr(self, val: float) -> None:
-        self._validate(val, self.MAX_CURRENT)
         self._write_data(f"CURR {val}")
 
     @property
@@ -91,7 +78,6 @@ class HP6655A:
 
     @ovp.setter
     def ovp(self, val: float) -> None:
-        self._validate(val, self.MAX_OVP)
         self._write_data(f"VOLT:PROT {val}")
 
     @property
@@ -109,7 +95,6 @@ class HP6655A:
 
     def reset(self) -> None:
         """Reset the supply (disabling output), then clear status and errors."""
-        # Check errors only after clearing pre-existing status/errors.
         self.ins.write("*RST")
         self._write_data("*CLS")
 
