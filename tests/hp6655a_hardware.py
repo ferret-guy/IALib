@@ -24,7 +24,9 @@ def run(load=False):
         resources = []
         supplies = []
         for address in (5, 6):
-            interface = stack.enter_context(manager.open_resource(f"GPIB0::{address}::INSTR"))
+            interface = stack.enter_context(
+                manager.open_resource(f"GPIB0::{address}::INSTR")
+            )
             interface.timeout = 3000
             interface.write_termination = "\n"
             identity = interface.query("*IDN?").strip()
@@ -46,15 +48,15 @@ def run(load=False):
             for index, supply in enumerate(supplies):
                 supply.reset()
                 assert supply.output is False
-                supply.curr = .2 if index == 0 else 0
+                supply.curr = 0.2 if index == 0 else 0
                 supply.volt = 0
                 for enabled in (True, False):
                     supply.ocp = enabled
                     assert supply.ocp is enabled
                 supply.ovp = 10
-                assert abs(supply.ovp - 10) < .2
-                assert supply.volt < .1
-                assert supply.curr <= (.21 if index == 0 else .01)
+                assert abs(supply.ovp - 10) < 0.2
+                assert supply.volt < 0.1
+                assert supply.curr <= (0.21 if index == 0 else 0.01)
                 supply.clear_protection()
                 assert supply.error is None
                 resources[index].write("IALIB_INVALID_COMMAND")
@@ -64,26 +66,37 @@ def run(load=False):
                 assert error.text and error.raw_str
                 assert supply.error is None
                 HP6655A(resources[index], error_check=False).volt = 0
-                print(index + 5, "reset, OCP controls, OVP, set points, error checks PASS", flush=True)
+                print(
+                    index + 5,
+                    "reset, OCP controls, OVP, set points, error checks PASS",
+                    flush=True,
+                )
 
             if load:
-                master.curr = .2
+                master.curr = 0.2
                 master.volt = 0
                 slave.curr = 0
                 slave.volt = 12
                 slave.output = True
                 master.output = True
                 master.volt = 6  # Even at full voltage, 10 ohms dissipates 3.6 W.
-                time.sleep(.8)
+                time.sleep(0.8)
                 readings = [(s.v_meas, s.i_meas) for s in supplies]
                 status = int(resources[0].query("STAT:OPER:COND?"))
                 total_current = sum(i for _, i in readings)
-                print("LOAD readings", readings, "total A", total_current,
-                      "master operation status", status, flush=True)
+                print(
+                    "LOAD readings",
+                    readings,
+                    "total A",
+                    total_current,
+                    "master operation status",
+                    status,
+                    flush=True,
+                )
                 assert status & 1024, "Master did not enter constant-current mode"
-                assert 0 < total_current <= .5, "Unexpected parallel current"
+                assert 0 < total_current <= 0.5, "Unexpected parallel current"
                 assert all(0 <= v < 5.5 for v, _ in readings)
-                assert abs(readings[0][0] / 10 - total_current) < .03
+                assert abs(readings[0][0] / 10 - total_current) < 0.03
                 print("CURRENT LIMIT PASS", flush=True)
                 off()
                 master.volt = 0
@@ -92,10 +105,17 @@ def run(load=False):
                     slave.output = True
                     master.output = True
                     master.volt = 6
-                    time.sleep(.8)
+                    time.sleep(0.8)
                     status = int(resources[trip_index].query("STAT:QUES:COND?"))
-                    print("OCP", trip_index + 5, "status", status,
-                          "readings", [(s.v_meas, s.i_meas) for s in supplies], flush=True)
+                    print(
+                        "OCP",
+                        trip_index + 5,
+                        "status",
+                        status,
+                        "readings",
+                        [(s.v_meas, s.i_meas) for s in supplies],
+                        flush=True,
+                    )
                     assert status & 2, "OCP did not trip"
                     off()
                     master.volt = 0
@@ -108,7 +128,7 @@ def run(load=False):
 
             for trip_index in (0, 1):
                 off()
-                master.curr = .2
+                master.curr = 0.2
                 master.volt = 0
                 slave.curr = 0
                 slave.volt = 12
@@ -121,11 +141,20 @@ def run(load=False):
                 tripped = False
                 for voltage in (2, 4, 5.5, 6, 6.5, 7):
                     master.volt = voltage
-                    time.sleep(.4)
+                    time.sleep(0.4)
                     readings = [(s.v_meas, s.i_meas) for s in supplies]
                     status = int(resources[trip_index].query("STAT:QUES:COND?"))
-                    print("OVP", trip_index + 5, "set", master.volt,
-                          "readings", readings, "status", status, flush=True)
+                    print(
+                        "OVP",
+                        trip_index + 5,
+                        "set",
+                        master.volt,
+                        "readings",
+                        readings,
+                        "status",
+                        status,
+                        flush=True,
+                    )
                     assert all(abs(v) < 12 for v, _ in readings)
                     if status & 1:
                         tripped = True
@@ -140,16 +169,28 @@ def run(load=False):
         finally:
             off()
             for index, supply in enumerate(supplies):
-                supply.curr = .2 if index == 0 else 0
+                supply.curr = 0.2 if index == 0 else 0
                 supply.volt = 0
                 supply.ocp = False
                 supply.ovp = 10
                 resources[index].write("*SAV 0")
-                print(index + 5, "final OFF", not supply.output,
-                      "V", supply.volt, "A", supply.curr, "error", supply.error, flush=True)
+                print(
+                    index + 5,
+                    "final OFF",
+                    not supply.output,
+                    "V",
+                    supply.volt,
+                    "A",
+                    supply.curr,
+                    "error",
+                    supply.error,
+                    flush=True,
+                )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--load", action="store_true", help="10 ohm / 5 W load connected")
+    parser.add_argument(
+        "--load", action="store_true", help="10 ohm / 5 W load connected"
+    )
     run(load=parser.parse_args().load)

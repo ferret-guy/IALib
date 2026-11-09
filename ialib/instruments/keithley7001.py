@@ -14,14 +14,14 @@ class Channel:
     switch: int
 
     @classmethod
-    def from_dict(cls, mapping: Dict[int, Union[int, List[int]]]) -> List['Channel']:
+    def from_dict(cls, mapping: Dict[int, Union[int, List[int]]]) -> List["Channel"]:
         """
         Helper to quickly create a list of Channels from a dictionary.
-        
-        Because Python dict keys must be unique, defining multiple switches on the 
+
+        Because Python dict keys must be unique, defining multiple switches on the
         same card should use a list.
-        
-        Example: 
+
+        Example:
             Channel.from_dict({1: [1, 2, 4]}) -> [Channel(1,1), Channel(1,2), Channel(1,4)]
             Channel.from_dict({1: 1, 2: 4})   -> [Channel(1,1), Channel(2,4)]
         """
@@ -83,10 +83,10 @@ class Keithley7001:
     def setup_sweep(self, channels: List[Channel], continuous: bool = True) -> None:
         """
         Configures the instrument for a stepped sweep (scan) across a defined list of channels.
-        
+
         Args:
             channels: A list of Channel dataclass objects to scan through.
-            continuous: If True, the scan will loop back to the beginning indefinitely. 
+            continuous: If True, the scan will loop back to the beginning indefinitely.
                         Defaults to True.
         """
         if not channels:
@@ -96,15 +96,15 @@ class Keithley7001:
         scan_items = [f"{ch.card}!{ch.switch}" for ch in channels]
         scan_list_str = ", ".join(scan_items)
 
-        # Returns the 7001 to a default configuration ideal for scanning 
+        # Returns the 7001 to a default configuration ideal for scanning
         self._write_data(":SYSTem:PRESet")
-        
+
         # Define the scan list using the formatted string
         self._write_data(f":SCAN (@{scan_list_str})")
-        
+
         # Set the channel trigger source to BUS so it waits for software triggers (*TRG)
         self._write_data(":TRIGger:SOURce BUS")
-        
+
         if continuous:
             # Tell the trigger layer to loop infinitely over the scan list
             self._write_data(":TRIGger:COUNt INFinite")
@@ -122,27 +122,27 @@ class Keithley7001:
     def step_sweep(self, readback: bool = False) -> Optional[List[Channel]]:
         """
         Advances the sweep to the next channel in the scan list.
-        
+
         Args:
-            readback: If True, queries the instrument for the currently closed 
+            readback: If True, queries the instrument for the currently closed
                       channels and returns a list of Channel dataclass objects.
-                      
+
         Returns:
             A list of `Channel` instances if readback is True, otherwise None.
         """
         self._write_data("*TRG")
-        
+
         # Wait for the relays to actuate and settle
         if self.settle_sec > 0:
             time.sleep(self.settle_sec)
-            
+
         if readback:
             # Query the closed state. The unit returns a string like "(@1!2)" or "(@)"
             raw_response = self._query_data(":CLOS:STAT?").strip()
-            
+
             # Clean off the parentheses and @ symbol
             cleaned = raw_response.strip("()@ \r\n")
-            
+
             closed_channels = []
             if cleaned:
                 # The response can be comma separated if multiple relays are closed e.g. "1!2, 1!3"
@@ -151,10 +151,12 @@ class Keithley7001:
                     if len(parts) >= 2:
                         card_idx = int(parts[0])
                         switch_idx = int(parts[1])
-                        closed_channels.append(Channel(card=card_idx, switch=switch_idx))
-                        
+                        closed_channels.append(
+                            Channel(card=card_idx, switch=switch_idx)
+                        )
+
             return closed_channels
-            
+
         return None
 
 
@@ -167,34 +169,36 @@ if __name__ == "__main__":
     )
 
     ins = Keithley7001(ins_interface, settle_sec=0.1)
-    
+
     # 1. Quickly build the list of channels using the dict helper.
     # We want card 1, channels 1 through 18.
     channel_mapping = {1: list(range(1, 19))}
-    
+
     # Example of non-sequential channels:
-    # channel_mapping = {1: [1, 2, 4, 7, 12]} 
-    
+    # channel_mapping = {1: [1, 2, 4, 7, 12]}
+
     my_channels = Channel.from_dict(channel_mapping)
-    
+
     # 2. Configure a continuous sweep using the Channel list
     ins.setup_sweep(my_channels)
-    
+
     # 3. Arm the sweep
     ins.start_sweep()
-    
+
     # 4. Step through 500 times.
     for i in range(500):
         # Step and read back the active channel
         active_chans = ins.step_sweep(readback=True)
-        
+
         if active_chans:
             active_chan = active_chans[0]
-            print(f"Step {i+1}/500: Closed Card={active_chan.card}, Switch={active_chan.switch}")
+            print(
+                f"Step {i+1}/500: Closed Card={active_chan.card}, Switch={active_chan.switch}"
+            )
         else:
             print(f"Step {i+1}/500: No channels are currently closed.")
-        
+
         # [Insert your measurement logic here]
-        
+
     # Open all when finished
     ins.open()
